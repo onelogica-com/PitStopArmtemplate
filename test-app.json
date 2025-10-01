@@ -12,104 +12,85 @@
       "defaultValue": "avc",
       "metadata": { "description": "Prefix for resource names" }
     },
-    "storageSku": {
+    "functionRuntime": {
       "type": "string",
-      "defaultValue": "Standard_LRS",
-      "allowedValues": ["Standard_LRS", "Standard_GRS", "Standard_RAGRS"]
-    },
-    "avatarTextImage": {
-      "type": "string",
-      "defaultValue": "mcr.microsoft.com/yourorg/avatar-text:latest",
-      "metadata": { "description": "Container image for avatar text-response container app" }
-    },
-    "avatarVisemeImage": {
-      "type": "string",
-      "defaultValue": "mcr.microsoft.com/yourorg/avatar-viseme:latest",
-      "metadata": { "description": "Container image for viseme generation container app" }
+      "defaultValue": "node",
+      "allowedValues": ["node", "dotnet", "python", "java"]
     }
   },
   "variables": {
-    "functionStorageName": "[toLower(concat('avcfs', uniqueString(resourceGroup().id)))]",
-    "containerEnvName": "[concat(parameters('prefix'), '-ca-env')]",
-    "containerAppTextName": "[concat(parameters('prefix'), '-avatar-text')]",
-    "containerAppVisemeName": "[concat(parameters('prefix'), '-avatar-viseme')]"
+    "storageAccountName": "[toLower(concat(parameters('prefix'), 'st', uniqueString(resourceGroup().id)))]",
+    "functionAppName": "[concat(parameters('prefix'), '-func')]",
+    "consumptionPlanName": "[concat(parameters('prefix'), '-func-plan')]",
+    "appInsightsName": "[concat(parameters('prefix'), '-ai')]"
   },
   "resources": [
     {
       "type": "Microsoft.Storage/storageAccounts",
       "apiVersion": "2021-09-01",
-      "name": "[variables('functionStorageName')]",
+      "name": "[variables('storageAccountName')]",
       "location": "[parameters('location')]",
-      "sku": { "name": "[parameters('storageSku')]" },
+      "sku": { "name": "Standard_LRS" },
       "kind": "StorageV2",
       "properties": { "accessTier": "Hot" }
     },
     {
-      "type": "Microsoft.App/managedEnvironments",
-      "apiVersion": "2022-03-01",
-      "name": "[variables('containerEnvName')]",
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2015-05-01",
+      "name": "[variables('appInsightsName')]",
       "location": "[parameters('location')]",
+      "properties": { "Application_Type": "web" }
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2021-02-01",
+      "name": "[variables('consumptionPlanName')]",
+      "location": "[parameters('location')]",
+      "sku": { "name": "Y1", "tier": "Dynamic" },
       "properties": {}
     },
     {
-      "type": "Microsoft.App/containerApps",
-      "apiVersion": "2022-03-01",
-      "name": "[variables('containerAppTextName')]",
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2021-02-01",
+      "kind": "functionapp",
+      "name": "[variables('functionAppName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]"
+        "[resourceId('Microsoft.Web/serverfarms', variables('consumptionPlanName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+        "[resourceId('microsoft.insights/components', variables('appInsightsName'))]"
       ],
       "properties": {
-        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]",
-        "configuration": {
-          "ingress": { "external": true, "targetPort": 8080, "transport": "auto" }
-        },
-        "template": {
-          "containers": [
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('consumptionPlanName'))]",
+        "siteConfig": {
+          "appSettings": [
             {
-              "name": "avatar-text",
-              "image": "[parameters('avatarTextImage')]",
-              "resources": { "cpu": 0.25, "memory": "0.5Gi" }
-            }
-          ],
-          "scale": { "minReplicas": 1, "maxReplicas": 2 }
-        }
-      }
-    },
-    {
-      "type": "Microsoft.App/containerApps",
-      "apiVersion": "2022-03-01",
-      "name": "[variables('containerAppVisemeName')]",
-      "location": "[parameters('location')]",
-      "dependsOn": [
-        "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]"
-      ],
-      "properties": {
-        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]",
-        "configuration": {
-          "ingress": { "external": true, "targetPort": 8080, "transport": "auto" }
-        },
-        "template": {
-          "containers": [
+              "name": "AzureWebJobsStorage",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2021-09-01').keys[0].value)]"
+            },
+            { "name": "FUNCTIONS_EXTENSION_VERSION", "value": "~4" },
+            { "name": "FUNCTIONS_WORKER_RUNTIME", "value": "[parameters('functionRuntime')]" },
             {
-              "name": "avatar-viseme",
-              "image": "[parameters('avatarVisemeImage')]",
-              "resources": { "cpu": 0.25, "memory": "0.5Gi" }
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[reference(resourceId('microsoft.insights/components', variables('appInsightsName')), '2015-05-01').InstrumentationKey]"
             }
-          ],
-          "scale": { "minReplicas": 1, "maxReplicas": 2 }
+          ]
         }
       }
     }
   ],
   "outputs": {
-    "containerAppTextUrl": {
+    "functionAppName": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppTextName'))).properties.configuration.ingress.fqdn]"
+      "value": "[variables('functionAppName')]"
     },
-    "containerAppVisemeUrl": {
+    "functionAppUrl": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.App/containerApps', variables('containerAppVisemeName'))).properties.configuration.ingress.fqdn]"
+      "value": "[reference(resourceId('Microsoft.Web/sites', variables('functionAppName'))).defaultHostName]"
+    },
+    "storageAccountName": {
+      "type": "string",
+      "value": "[variables('storageAccountName')]"
     }
   }
 }
