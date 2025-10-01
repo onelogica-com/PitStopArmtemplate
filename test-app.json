@@ -12,17 +12,20 @@
       "defaultValue": "avc",
       "metadata": { "description": "Prefix for resource names" }
     },
-    "functionRuntime": {
+    "repositoryUrl": {
       "type": "string",
-      "defaultValue": "node",
-      "allowedValues": ["node", "dotnet", "python", "java"]
+      "defaultValue": "https://github.com/yourorg/your-frontend-repo",
+      "metadata": { "description": "GitHub repo URL for the static web app" }
+    },
+    "branch": {
+      "type": "string",
+      "defaultValue": "main",
+      "metadata": { "description": "Branch to deploy" }
     }
   },
   "variables": {
     "storageAccountName": "[toLower(concat(parameters('prefix'), 'st', uniqueString(resourceGroup().id)))]",
-    "functionAppName": "[concat(parameters('prefix'), '-func')]",
-    "consumptionPlanName": "[concat(parameters('prefix'), '-func-plan')]",
-    "appInsightsName": "[concat(parameters('prefix'), '-ai')]"
+    "staticWebAppName": "[concat(parameters('prefix'), '-swa')]"
   },
   "resources": [
     {
@@ -35,58 +38,26 @@
       "properties": { "accessTier": "Hot" }
     },
     {
-      "type": "Microsoft.Insights/components",
-      "apiVersion": "2015-05-01",
-      "name": "[variables('appInsightsName')]",
+      "type": "Microsoft.Web/staticSites",
+      "apiVersion": "2022-03-01",
+      "name": "[variables('staticWebAppName')]",
       "location": "[parameters('location')]",
-      "properties": { "Application_Type": "web" }
-    },
-    {
-      "type": "Microsoft.Web/serverfarms",
-      "apiVersion": "2021-02-01",
-      "name": "[variables('consumptionPlanName')]",
-      "location": "[parameters('location')]",
-      "sku": { "name": "Y1", "tier": "Dynamic" },
-      "properties": {}
-    },
-    {
-      "type": "Microsoft.Web/sites",
-      "apiVersion": "2021-02-01",
-      "kind": "functionapp",
-      "name": "[variables('functionAppName')]",
-      "location": "[parameters('location')]",
-      "dependsOn": [
-        "[resourceId('Microsoft.Web/serverfarms', variables('consumptionPlanName'))]",
-        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
-        "[resourceId('microsoft.insights/components', variables('appInsightsName'))]"
-      ],
       "properties": {
-        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('consumptionPlanName'))]",
-        "siteConfig": {
-          "appSettings": [
-            {
-              "name": "AzureWebJobsStorage",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2021-09-01').keys[0].value)]"
-            },
-            { "name": "FUNCTIONS_EXTENSION_VERSION", "value": "~4" },
-            { "name": "FUNCTIONS_WORKER_RUNTIME", "value": "[parameters('functionRuntime')]" },
-            {
-              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
-              "value": "[reference(resourceId('microsoft.insights/components', variables('appInsightsName')), '2015-05-01').InstrumentationKey]"
-            }
-          ]
-        }
+        "repositoryUrl": "[parameters('repositoryUrl')]",
+        "branch": "[parameters('branch')]",
+        "buildProperties": {
+          "appLocation": "/",
+          "apiLocation": "api",
+          "outputLocation": "build"
+        },
+        "sku": { "name": "Free" }
       }
     }
   ],
   "outputs": {
-    "functionAppName": {
+    "staticWebAppUrl": {
       "type": "string",
-      "value": "[variables('functionAppName')]"
-    },
-    "functionAppUrl": {
-      "type": "string",
-      "value": "[reference(resourceId('Microsoft.Web/sites', variables('functionAppName'))).defaultHostName]"
+      "value": "[reference(resourceId('Microsoft.Web/staticSites', variables('staticWebAppName'))).defaultHostName]"
     },
     "storageAccountName": {
       "type": "string",
