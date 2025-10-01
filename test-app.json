@@ -2,19 +2,46 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "location": { "type": "string", "defaultValue": "eastus" },
-    "appServicePlanName": { "type": "string", "defaultValue": "avcAppPlan" },
-    "webAppName": { "type": "string", "defaultValue": "avcwebapp" },
-    "signalRName": { "type": "string", "defaultValue": "avcsignalr" },
-    "functionAppName": { "type": "string", "defaultValue": "avcfuncapp" },
-    "containerEnvName": { "type": "string", "defaultValue": "avccontainenv" },
-    "avatarAppName": { "type": "string", "defaultValue": "avcavatar" },
-    "visemeAppName": { "type": "string", "defaultValue": "avcviseme" },
-    "appInsightsName": { "type": "string", "defaultValue": "avcinsights" }
+    "location": {
+      "type": "string",
+      "defaultValue": "eastus"
+    },
+    "appServicePlanName": {
+      "type": "string",
+      "defaultValue": "avcAppPlan"
+    },
+    "webAppName": {
+      "type": "string",
+      "defaultValue": "avcwebapp"
+    },
+    "signalRName": {
+      "type": "string",
+      "defaultValue": "avcsignalr"
+    },
+    "functionAppName": {
+      "type": "string",
+      "defaultValue": "avcfuncapp"
+    },
+    "containerEnvName": {
+      "type": "string",
+      "defaultValue": "avccontainenv"
+    },
+    "avatarAppName": {
+      "type": "string",
+      "defaultValue": "avcavatar"
+    },
+    "visemeAppName": {
+      "type": "string",
+      "defaultValue": "avcviseme"
+    },
+    "appInsightsName": {
+      "type": "string",
+      "defaultValue": "avcinsights"
+    }
   },
   "variables": {
-    "storageAccountName": "[substring(toLower(concat('avcst', uniqueString(resourceGroup().id))), 0, 24)]",
-    "functionStorageName": "[substring(toLower(concat('avcfs', uniqueString(resourceGroup().id))), 0, 24)]"
+    "storageAccountName": "[toLower(concat('avcst', uniqueString(resourceGroup().id)))]",
+    "functionStorageName": "[toLower(concat('avcfs', uniqueString(resourceGroup().id)))]"
   },
   "resources": [
     {
@@ -22,8 +49,11 @@
       "apiVersion": "2022-03-01",
       "name": "[parameters('appServicePlanName')]",
       "location": "[parameters('location')]",
-      "sku": { "name": "F1", "tier": "Free" },
-      "properties": {}
+      "sku": {
+        "name": "F1",   // Free plan, no VM quota issue
+        "tier": "Free"
+      },
+      "properties": { }
     },
     {
       "type": "Microsoft.Web/sites",
@@ -48,11 +78,7 @@
       "name": "[parameters('signalRName')]",
       "location": "[parameters('location')]",
       "sku": { "name": "Free_F1", "tier": "Free", "capacity": 1 },
-      "properties": {
-        "features": [
-          { "flag": "ServiceMode", "value": "Default" }
-        ]
-      }
+      "properties": { "features": [ { "flag": "ServiceMode", "value": "Default" } ] }
     },
     {
       "type": "Microsoft.Storage/storageAccounts",
@@ -72,10 +98,7 @@
         "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
         "siteConfig": {
           "appSettings": [
-            {
-              "name": "AzureWebJobsStorage",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('functionStorageName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageName')), '2023-01-01').keys[0].value)]"
-            }
+            { "name": "AzureWebJobsStorage", "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('functionStorageName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageName')), '2023-01-01').keys[0].value)]" }
           ]
         }
       }
@@ -85,7 +108,7 @@
       "apiVersion": "2024-03-01",
       "name": "[parameters('containerEnvName')]",
       "location": "[parameters('location')]",
-      "properties": {}
+      "properties": { }   // Removed invalid LogAnalyticsConfiguration
     },
     {
       "type": "Microsoft.App/containerApps",
@@ -97,11 +120,7 @@
         "configuration": { "ingress": { "external": true, "targetPort": 80 } },
         "template": {
           "containers": [
-            {
-              "name": "avatar",
-              "image": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
-              "resources": { "cpu": 0.5, "memory": "1Gi" }
-            }
+            { "name": "avatar", "image": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest", "resources": { "cpu": 0.5, "memory": "1Gi" } }
           ]
         }
       }
@@ -116,11 +135,7 @@
         "configuration": { "ingress": { "external": true, "targetPort": 80 } },
         "template": {
           "containers": [
-            {
-              "name": "viseme",
-              "image": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
-              "resources": { "cpu": 0.5, "memory": "1Gi" }
-            }
+            { "name": "viseme", "image": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest", "resources": { "cpu": 0.5, "memory": "1Gi" } }
           ]
         }
       }
@@ -133,31 +148,5 @@
       "kind": "web",
       "properties": { "Application_Type": "web" }
     }
-  ],
-  "outputs": {
-    "webAppUrl": {
-      "type": "string",
-      "value": "[concat('https://', parameters('webAppName'), '.azurewebsites.net')]"
-    },
-    "functionAppUrl": {
-      "type": "string",
-      "value": "[concat('https://', parameters('functionAppName'), '.azurewebsites.net')]"
-    },
-    "signalRConnectionString": {
-      "type": "string",
-      "value": "[listKeys(resourceId('Microsoft.SignalRService/signalR', parameters('signalRName')), '2023-02-01').primaryConnectionString]"
-    },
-    "avatarAppUrl": {
-      "type": "string",
-      "value": "[reference(resourceId('Microsoft.App/containerApps', parameters('avatarAppName'))).properties.configuration.ingress.fqdn]"
-    },
-    "visemeAppUrl": {
-      "type": "string",
-      "value": "[reference(resourceId('Microsoft.App/containerApps', parameters('visemeAppName'))).properties.configuration.ingress.fqdn]"
-    },
-    "appInsightsInstrumentationKey": {
-      "type": "string",
-      "value": "[reference(resourceId('Microsoft.Insights/components', parameters('appInsightsName')), '2020-02-02').InstrumentationKey]"
-    }
-  }
+  ]
 }
