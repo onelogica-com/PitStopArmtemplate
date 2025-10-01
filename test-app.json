@@ -2,228 +2,162 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "location": {
-      "type": "string",
-      "defaultValue": "[resourceGroup().location]",
-      "metadata": { "description": "Location for all resources" }
-    },
-    "prefix": {
-      "type": "string",
-      "defaultValue": "avatarchat",
-      "metadata": { "description": "Prefix used for resource names" }
-    },
-    "storageSku": {
-      "type": "string",
-      "defaultValue": "Standard_LRS",
-      "allowedValues": [ "Standard_LRS", "Standard_GRS", "Standard_RAGRS" ]
-    },
-    "appServiceSku": {
-      "type": "string",
-      "defaultValue": "P1v2",
-      "allowedValues": [ "P1v2", "P2v2", "P3v2" ]
-    },
-    "webAppImage": {
-      "type": "string",
-      "defaultValue": "mcr.microsoft.com/azuredocs/hello-app:latest",
-      "metadata": { "description": "Container image for the web chat app" }
-    },
-    "avatarTextImage": {
-      "type": "string",
-      "defaultValue": "mcr.microsoft.com/yourorg/avatar-text:latest",
-      "metadata": { "description": "Container image for avatar text-response container app" }
-    },
-    "avatarVisemeImage": {
-      "type": "string",
-      "defaultValue": "mcr.microsoft.com/yourorg/avatar-viseme:latest",
-      "metadata": { "description": "Container image for viseme generation container app" }
-    }
+    "location": { "type": "string", "defaultValue": "eastus" },
+    "appServicePlanName": { "type": "string", "defaultValue": "avcAppPlan" },
+    "webAppName": { "type": "string", "defaultValue": "avcwebapp" },
+    "signalRName": { "type": "string", "defaultValue": "avcsignalr" },
+    "functionAppName": { "type": "string", "defaultValue": "avcfuncapp" },
+    "containerEnvName": { "type": "string", "defaultValue": "avccontainenv" },
+    "avatarAppName": { "type": "string", "defaultValue": "avcavatar" },
+    "visemeAppName": { "type": "string", "defaultValue": "avcviseme" },
+    "appInsightsName": { "type": "string", "defaultValue": "avcinsights" }
   },
   "variables": {
-    "storageAccountName": "[toLower(concat(parameters('prefix'),'storage',uniqueString(resourceGroup().id)))]",
-    "functionStorageName": "[toLower(concat(parameters('prefix'),'funcstore',uniqueString(resourceGroup().id)))]",
-    "appServicePlanName": "[concat(parameters('prefix'), '-plan')]",
-    "webAppName": "[concat(parameters('prefix'), '-webchat')]",
-    "functionAppName": "[concat(parameters('prefix'), '-func')]",
-    "containerEnvName": "[concat(parameters('prefix'), '-ca-env')]",
-    "containerAppTextName": "[concat(parameters('prefix'), '-avatar-text')]",
-    "containerAppVisemeName": "[concat(parameters('prefix'), '-avatar-viseme')]",
-    "signalRName": "[concat(parameters('prefix'), '-signalr')]",
-    "appInsightsName": "[concat(parameters('prefix'), '-ai')]"
+    "storageAccountName": "[substring(toLower(concat('avcst', uniqueString(resourceGroup().id))), 0, 24)]",
+    "functionStorageName": "[substring(toLower(concat('avcfs', uniqueString(resourceGroup().id))), 0, 24)]"
   },
   "resources": [
     {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2022-03-01",
+      "name": "[parameters('appServicePlanName')]",
+      "location": "[parameters('location')]",
+      "sku": { "name": "F1", "tier": "Free" },
+      "properties": {}
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-03-01",
+      "name": "[parameters('webAppName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
+      }
+    },
+    {
       "type": "Microsoft.Storage/storageAccounts",
-      "apiVersion": "2021-09-01",
+      "apiVersion": "2023-01-01",
       "name": "[variables('storageAccountName')]",
       "location": "[parameters('location')]",
-      "sku": { "name": "[parameters('storageSku')]" },
-      "kind": "StorageV2",
-      "properties": { "accessTier": "Hot" }
-    },
-    {
-      "type": "Microsoft.Storage/storageAccounts",
-      "apiVersion": "2021-09-01",
-      "name": "[variables('functionStorageName')]",
-      "location": "[parameters('location')]",
       "sku": { "name": "Standard_LRS" },
-      "kind": "StorageV2",
-      "properties": { "accessTier": "Hot" }
-    },
-    {
-      "type": "Microsoft.Insights/components",
-      "apiVersion": "2015-05-01",
-      "name": "[variables('appInsightsName')]",
-      "location": "[parameters('location')]",
-      "properties": { "Application_Type": "web" }
-    },
-    {
-      "type": "Microsoft.Web/serverfarms",
-      "apiVersion": "2021-02-01",
-      "name": "[variables('appServicePlanName')]",
-      "location": "[parameters('location')]",
-      "sku": {
-        "name": "[parameters('appServiceSku')]",
-        "tier": "PremiumV2",
-        "size": "[parameters('appServiceSku')]",
-        "capacity": 1
-      },
-      "properties": { "reserved": true }
-    },
-    {
-      "type": "Microsoft.Web/sites",
-      "apiVersion": "2021-02-01",
-      "name": "[variables('webAppName')]",
-      "location": "[parameters('location')]",
-      "dependsOn": [
-        "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
-        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
-      ],
-      "properties": {
-        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
-        "siteConfig": {
-          "linuxFxVersion": "[concat('DOCKER|', parameters('webAppImage'))]",
-          "appSettings": [
-            { "name": "WEBSITES_ENABLE_APP_SERVICE_STORAGE", "value": "false" },
-            { "name": "APPINSIGHTS_INSTRUMENTATIONKEY", "value": "[reference(resourceId('microsoft.insights/components', variables('appInsightsName')), '2015-05-01').InstrumentationKey]" }
-          ]
-        }
-      }
-    },
-    {
-      "type": "Microsoft.Web/sites",
-      "apiVersion": "2021-02-01",
-      "kind": "functionapp",
-      "name": "[variables('functionAppName')]",
-      "location": "[parameters('location')]",
-      "dependsOn": [
-        "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
-        "[resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageName'))]",
-        "[resourceId('microsoft.insights/components', variables('appInsightsName'))]"
-      ],
-      "properties": {
-        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
-        "siteConfig": {
-          "appSettings": [
-            { "name": "AzureWebJobsStorage", "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('functionStorageName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageName')), '2021-09-01').keys[0].value)]" },
-            { "name": "FUNCTIONS_EXTENSION_VERSION", "value": "~4" },
-            { "name": "FUNCTIONS_WORKER_RUNTIME", "value": "node" },
-            { "name": "APPINSIGHTS_INSTRUMENTATIONKEY", "value": "[reference(resourceId('microsoft.insights/components', variables('appInsightsName')), '2015-05-01').InstrumentationKey]" }
-          ]
-        }
-      }
+      "kind": "StorageV2"
     },
     {
       "type": "Microsoft.SignalRService/signalR",
-      "apiVersion": "2021-10-01",
-      "name": "[variables('signalRName')]",
+      "apiVersion": "2023-02-01",
+      "name": "[parameters('signalRName')]",
       "location": "[parameters('location')]",
-      "sku": {
-        "name": "Standard_S1",
-        "tier": "Standard",
-        "capacity": 1
-      },
-      "properties": { "features": [], "disableLocalAuth": false }
+      "sku": { "name": "Free_F1", "tier": "Free", "capacity": 1 },
+      "properties": {
+        "features": [
+          { "flag": "ServiceMode", "value": "Default" }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-01-01",
+      "name": "[variables('functionStorageName')]",
+      "location": "[parameters('location')]",
+      "sku": { "name": "Standard_LRS" },
+      "kind": "StorageV2"
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-03-01",
+      "name": "[parameters('functionAppName')]",
+      "location": "[parameters('location')]",
+      "kind": "functionapp",
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
+        "siteConfig": {
+          "appSettings": [
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('functionStorageName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageName')), '2023-01-01').keys[0].value)]"
+            }
+          ]
+        }
+      }
     },
     {
       "type": "Microsoft.App/managedEnvironments",
-      "apiVersion": "2022-03-01",
-      "name": "[variables('containerEnvName')]",
+      "apiVersion": "2024-03-01",
+      "name": "[parameters('containerEnvName')]",
       "location": "[parameters('location')]",
-      "properties": {
-        "appLogsConfiguration": { "destination": "log-analytics" }
-      }
+      "properties": {}
     },
     {
       "type": "Microsoft.App/containerApps",
-      "apiVersion": "2022-03-01",
-      "name": "[variables('containerAppTextName')]",
+      "apiVersion": "2024-03-01",
+      "name": "[parameters('avatarAppName')]",
       "location": "[parameters('location')]",
-      "dependsOn": [
-        "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]"
-      ],
       "properties": {
-        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]",
-        "configuration": {
-          "ingress": { "external": false, "targetPort": 8080, "transport": "auto" }
-        },
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', parameters('containerEnvName'))]",
+        "configuration": { "ingress": { "external": true, "targetPort": 80 } },
         "template": {
           "containers": [
             {
-              "name": "avatar-text",
-              "image": "[parameters('avatarTextImage')]",
+              "name": "avatar",
+              "image": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
               "resources": { "cpu": 0.5, "memory": "1Gi" }
             }
-          ],
-          "scale": { "minReplicas": 1, "maxReplicas": 3 }
+          ]
         }
       }
     },
     {
       "type": "Microsoft.App/containerApps",
-      "apiVersion": "2022-03-01",
-      "name": "[variables('containerAppVisemeName')]",
+      "apiVersion": "2024-03-01",
+      "name": "[parameters('visemeAppName')]",
       "location": "[parameters('location')]",
-      "dependsOn": [
-        "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]"
-      ],
       "properties": {
-        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]",
-        "configuration": {
-          "ingress": { "external": false, "targetPort": 8080, "transport": "auto" }
-        },
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', parameters('containerEnvName'))]",
+        "configuration": { "ingress": { "external": true, "targetPort": 80 } },
         "template": {
           "containers": [
             {
-              "name": "avatar-viseme",
-              "image": "[parameters('avatarVisemeImage')]",
+              "name": "viseme",
+              "image": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
               "resources": { "cpu": 0.5, "memory": "1Gi" }
             }
-          ],
-          "scale": { "minReplicas": 1, "maxReplicas": 2 }
+          ]
         }
       }
+    },
+    {
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2020-02-02",
+      "name": "[parameters('appInsightsName')]",
+      "location": "[parameters('location')]",
+      "kind": "web",
+      "properties": { "Application_Type": "web" }
     }
   ],
   "outputs": {
     "webAppUrl": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Web/sites', variables('webAppName'))).defaultHostName]"
+      "value": "[concat('https://', parameters('webAppName'), '.azurewebsites.net')]"
     },
-    "functionAppName": {
+    "functionAppUrl": {
       "type": "string",
-      "value": "[variables('functionAppName')]"
+      "value": "[concat('https://', parameters('functionAppName'), '.azurewebsites.net')]"
     },
-    "signalRName": {
+    "signalRConnectionString": {
       "type": "string",
-      "value": "[variables('signalRName')]"
+      "value": "[listKeys(resourceId('Microsoft.SignalRService/signalR', parameters('signalRName')), '2023-02-01').primaryConnectionString]"
     },
-    "containerAppText": {
+    "avatarAppUrl": {
       "type": "string",
-      "value": "[variables('containerAppTextName')]"
+      "value": "[reference(resourceId('Microsoft.App/containerApps', parameters('avatarAppName'))).properties.configuration.ingress.fqdn]"
     },
-    "containerAppViseme": {
+    "visemeAppUrl": {
       "type": "string",
-      "value": "[variables('containerAppVisemeName')]"
+      "value": "[reference(resourceId('Microsoft.App/containerApps', parameters('visemeAppName'))).properties.configuration.ingress.fqdn]"
+    },
+    "appInsightsInstrumentationKey": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Insights/components', parameters('appInsightsName')), '2020-02-02').InstrumentationKey]"
     }
   }
 }
