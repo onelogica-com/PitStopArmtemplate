@@ -35,17 +35,17 @@
     "webAppImage": {
       "type": "string",
       "defaultValue": "mcr.microsoft.com/azuredocs/hello-app:latest",
-      "metadata": { "description": "Container image for web chat app (if using containerized web app). If using code, change template." }
+      "metadata": { "description": "Container image for web chat app" }
     },
     "avatarTextImage": {
       "type": "string",
       "defaultValue": "mcr.microsoft.com/yourorg/avatar-text:latest",
-      "metadata": { "description": "Container image for avatar text-response container app" }
+      "metadata": { "description": "Container image for avatar text-response app" }
     },
     "avatarVisemeImage": {
       "type": "string",
       "defaultValue": "mcr.microsoft.com/yourorg/avatar-viseme:latest",
-      "metadata": { "description": "Container image for viseme generation container app" }
+      "metadata": { "description": "Container image for viseme generation app" }
     },
     "cosmosOfferType": {
       "type": "string",
@@ -204,9 +204,7 @@
       "apiVersion": "2022-03-01",
       "name": "[variables('containerEnvName')]",
       "location": "[parameters('location')]",
-      "properties": {
-        "appLogsConfiguration": { "destination": "log-analytics" }
-      }
+      "properties": {}
     },
     {
       "type": "Microsoft.App/containerApps",
@@ -269,7 +267,7 @@
       "apiVersion": "2021-10-01",
       "name": "[variables('cogTranslatorName')]",
       "location": "[parameters('location')]",
-      "sku": { "name": "S3" },
+      "sku": { "name": "F0" },
       "kind": "TextTranslation",
       "properties": { "publicNetworkAccess": "Enabled" }
     },
