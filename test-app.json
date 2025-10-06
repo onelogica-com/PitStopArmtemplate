@@ -18,11 +18,11 @@
     },
     "appServiceSku": {
       "type": "string",
-      "defaultValue": "P1v2"
+      "defaultValue": "B1"
     },
     "postgresSkuName": {
       "type": "string",
-      "defaultValue": "GPL-Standard-DD-Gen5-2"
+      "defaultValue": "GP_Standard_D2s_v3"
     },
     "postgresAdmin": {
       "type": "string",
@@ -34,18 +34,15 @@
     },
     "webAppImage": {
       "type": "string",
-      "defaultValue": "mcr.microsoft.com/azuredocs/hello-app:latest",
-      "metadata": { "description": "Container image for web chat app" }
+      "defaultValue": "mcr.microsoft.com/azuredocs/hello-app:latest"
     },
     "avatarTextImage": {
       "type": "string",
-      "defaultValue": "mcr.microsoft.com/yourorg/avatar-text:latest",
-      "metadata": { "description": "Container image for avatar text-response app" }
+      "defaultValue": "mcr.microsoft.com/yourorg/avatar-text:latest"
     },
     "avatarVisemeImage": {
       "type": "string",
-      "defaultValue": "mcr.microsoft.com/yourorg/avatar-viseme:latest",
-      "metadata": { "description": "Container image for viseme generation app" }
+      "defaultValue": "mcr.microsoft.com/yourorg/avatar-viseme:latest"
     },
     "cosmosOfferType": {
       "type": "string",
@@ -68,7 +65,6 @@
     "cogNameSuffix": "[uniqueString(resourceGroup().id)]",
     "cogTranslatorName": "[concat(parameters('prefix'),'-translator-', variables('cogNameSuffix'))]",
     "cogSpeechName": "[concat(parameters('prefix'),'-speech-', variables('cogNameSuffix'))]",
-    "cogSearchName": "[concat(parameters('prefix'),'-search-', variables('cogNameSuffix'))]",
     "cogFormRecName": "[concat(parameters('prefix'),'-formrec-', variables('cogNameSuffix'))]",
     "appInsightsName": "[concat(parameters('prefix'), '-ai')]"
   },
@@ -105,7 +101,7 @@
       "location": "[parameters('location')]",
       "sku": {
         "name": "[parameters('appServiceSku')]",
-        "tier": "PremiumV2",
+        "tier": "Basic",
         "size": "[parameters('appServiceSku')]",
         "capacity": 1
       },
@@ -177,11 +173,7 @@
       "apiVersion": "2021-10-01",
       "name": "[variables('signalRName')]",
       "location": "[parameters('location')]",
-      "sku": {
-        "name": "Standard_S1",
-        "tier": "Standard",
-        "capacity": 1
-      },
+      "sku": { "name": "Standard_S1", "tier": "Standard", "capacity": 1 },
       "properties": { "features": [], "disableLocalAuth": false }
     },
     {
@@ -192,9 +184,7 @@
       "kind": "GlobalDocumentDB",
       "properties": {
         "databaseAccountOfferType": "[parameters('cosmosOfferType')]",
-        "locations": [
-          { "locationName": "[parameters('location')]" }
-        ],
+        "locations": [{ "locationName": "[parameters('location')]" }],
         "capabilities": [],
         "consistencyPolicy": { "defaultConsistencyLevel": "Session" }
       }
@@ -218,11 +208,7 @@
         "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]",
         "configuration": {
           "secrets": [],
-          "ingress": {
-            "external": false,
-            "targetPort": 8080,
-            "transport": "auto"
-          }
+          "ingress": { "external": false, "targetPort": 8080, "transport": "auto" }
         },
         "template": {
           "containers": [
@@ -283,15 +269,6 @@
     {
       "type": "Microsoft.CognitiveServices/accounts",
       "apiVersion": "2021-10-01",
-      "name": "[variables('cogSearchName')]",
-      "location": "[parameters('location')]",
-      "sku": { "name": "S1" },
-      "kind": "Search",
-      "properties": { "publicNetworkAccess": "Enabled" }
-    },
-    {
-      "type": "Microsoft.CognitiveServices/accounts",
-      "apiVersion": "2021-10-01",
       "name": "[variables('cogFormRecName')]",
       "location": "[parameters('location')]",
       "sku": { "name": "S0" },
@@ -304,36 +281,17 @@
       "type": "string",
       "value": "[reference(resourceId('Microsoft.Web/sites', variables('webAppName'))).defaultHostName]"
     },
-    "functionAppName": {
-      "type": "string",
-      "value": "[variables('functionAppName')]"
-    },
-    "signalRName": {
-      "type": "string",
-      "value": "[variables('signalRName')]"
-    },
-    "cosmosAccountName": {
-      "type": "string",
-      "value": "[variables('cosmosName')]"
-    },
-    "postgresServerName": {
-      "type": "string",
-      "value": "[variables('postgresName')]"
-    },
-    "containerAppText": {
-      "type": "string",
-      "value": "[variables('containerAppTextName')]"
-    },
-    "containerAppViseme": {
-      "type": "string",
-      "value": "[variables('containerAppVisemeName')]"
-    },
+    "functionAppName": { "type": "string", "value": "[variables('functionAppName')]" },
+    "signalRName": { "type": "string", "value": "[variables('signalRName')]" },
+    "cosmosAccountName": { "type": "string", "value": "[variables('cosmosName')]" },
+    "postgresServerName": { "type": "string", "value": "[variables('postgresName')]" },
+    "containerAppText": { "type": "string", "value": "[variables('containerAppTextName')]" },
+    "containerAppViseme": { "type": "string", "value": "[variables('containerAppVisemeName')]" },
     "cognitiveServices": {
       "type": "object",
       "value": {
         "translator": "[variables('cogTranslatorName')]",
         "speech": "[variables('cogSpeechName')]",
-        "search": "[variables('cogSearchName')]",
         "formRecognizer": "[variables('cogFormRecName')]"
       }
     }
