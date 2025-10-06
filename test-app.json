@@ -12,22 +12,10 @@
       "defaultValue": "avatarchat",
       "metadata": { "description": "Prefix used for resource names" }
     },
-    "storageSku": {
-      "type": "string",
-      "defaultValue": "Standard_LRS"
-    },
-    "appServiceSku": {
-      "type": "string",
-      "defaultValue": "B1"
-    },
-    "postgresSkuName": {
-      "type": "string",
-      "defaultValue": "GP_Standard_D2s_v3"
-    },
-    "postgresAdmin": {
-      "type": "string",
-      "defaultValue": "pgadmin"
-    },
+    "storageSku": { "type": "string", "defaultValue": "Standard_LRS" },
+    "appServiceSku": { "type": "string", "defaultValue": "F1" },
+    "postgresSkuName": { "type": "string", "defaultValue": "GP_Standard_D2s_v3" },
+    "postgresAdmin": { "type": "string", "defaultValue": "pgadmin" },
     "postgresAdminPassword": {
       "type": "secureString",
       "metadata": { "description": "PostgreSQL admin password" }
@@ -100,9 +88,9 @@
       "name": "[variables('appServicePlanName')]",
       "location": "[parameters('location')]",
       "sku": {
-        "name": "[parameters('appServiceSku')]",
-        "tier": "Basic",
-        "size": "[parameters('appServiceSku')]",
+        "name": "F1",
+        "tier": "Free",
+        "size": "F1",
         "capacity": 1
       },
       "properties": { "reserved": true }
@@ -121,8 +109,14 @@
         "siteConfig": {
           "appSettings": [
             { "name": "WEBSITES_ENABLE_APP_SERVICE_STORAGE", "value": "false" },
-            { "name": "AzureWebJobsStorage", "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('functionStorageName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageName')), '2021-09-01').keys[0].value)]" },
-            { "name": "APPINSIGHTS_INSTRUMENTATIONKEY", "value": "[reference(resourceId('microsoft.insights/components', variables('appInsightsName')), '2015-05-01').InstrumentationKey]" }
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('functionStorageName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageName')), '2021-09-01').keys[0].value)]"
+            },
+            {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[reference(resourceId('microsoft.insights/components', variables('appInsightsName')), '2015-05-01').InstrumentationKey]"
+            }
           ]
         }
       }
@@ -142,10 +136,16 @@
         "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
         "siteConfig": {
           "appSettings": [
-            { "name": "AzureWebJobsStorage", "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('functionStorageName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageName')), '2021-09-01').keys[0].value)]" },
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('functionStorageName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageName')), '2021-09-01').keys[0].value)]"
+            },
             { "name": "FUNCTIONS_EXTENSION_VERSION", "value": "~4" },
             { "name": "FUNCTIONS_WORKER_RUNTIME", "value": "node" },
-            { "name": "APPINSIGHTS_INSTRUMENTATIONKEY", "value": "[reference(resourceId('microsoft.insights/components', variables('appInsightsName')), '2015-05-01').InstrumentationKey]" }
+            {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[reference(resourceId('microsoft.insights/components', variables('appInsightsName')), '2015-05-01').InstrumentationKey]"
+            }
           ]
         }
       }
@@ -296,9 +296,8 @@
       }
     }
   }
-  
   //"comment_quotaNote": {
-  //  "note": "Deployment reminder — this comment is informational only and has no impact on template execution.",
-  //  "details": "Operation cannot be completed without additional quota. Additional details - Location: Current Limit (Basic VMs): 0, Current Usage: 0, Amount required for this deployment (Basic VMs): 1. (Minimum) New Limit that you should request to enable this deployment: 1. If you experience multiple scaling operations failing (in addition to this one), request a higher quota limit to accommodate aggregate requirements. (Code: SubscriptionIsOverQuotaForSku)"
+    //"note": "Deployment comment — informational only, no impact on deployment.",
+    //"details": "Operation cannot be completed without additional quota. This template now uses the Free (F1) App Service Plan to avoid Basic VM quota consumption. If you switch back to Basic, increase your quota under Subscription → Usage + quotas → Compute."
   //}
 }
