@@ -20,10 +20,6 @@
       "type": "string",
       "defaultValue": "P1v2"
     },
-    "postgresSkuName": {
-      "type": "string",
-      "defaultValue": "GPL-Standard-DD-Gen5-2"
-    },
     "postgresAdmin": {
       "type": "string",
       "defaultValue": "pgadmin"
@@ -192,9 +188,7 @@
       "kind": "GlobalDocumentDB",
       "properties": {
         "databaseAccountOfferType": "[parameters('cosmosOfferType')]",
-        "locations": [
-          { "locationName": "[parameters('location')]" }
-        ],
+        "locations": [{ "locationName": "[parameters('location')]" }],
         "capabilities": [],
         "consistencyPolicy": { "defaultConsistencyLevel": "Session" }
       }
@@ -211,26 +205,16 @@
       "apiVersion": "2022-03-01",
       "name": "[variables('containerAppTextName')]",
       "location": "[parameters('location')]",
-      "dependsOn": [
-        "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]"
-      ],
+      "dependsOn": ["[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]"],
       "properties": {
         "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]",
         "configuration": {
           "secrets": [],
-          "ingress": {
-            "external": false,
-            "targetPort": 8080,
-            "transport": "auto"
-          }
+          "ingress": { "external": false, "targetPort": 8080, "transport": "auto" }
         },
         "template": {
           "containers": [
-            {
-              "name": "avatar-text",
-              "image": "[parameters('avatarTextImage')]",
-              "resources": { "cpu": 0.5, "memory": "1Gi" }
-            }
+            { "name": "avatar-text", "image": "[parameters('avatarTextImage')]", "resources": { "cpu": 0.5, "memory": "1Gi" } }
           ],
           "scale": { "minReplicas": 1, "maxReplicas": 3 }
         }
@@ -241,9 +225,7 @@
       "apiVersion": "2022-03-01",
       "name": "[variables('containerAppVisemeName')]",
       "location": "[parameters('location')]",
-      "dependsOn": [
-        "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]"
-      ],
+      "dependsOn": ["[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]"],
       "properties": {
         "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]",
         "configuration": {
@@ -252,11 +234,7 @@
         },
         "template": {
           "containers": [
-            {
-              "name": "avatar-viseme",
-              "image": "[parameters('avatarVisemeImage')]",
-              "resources": { "cpu": 0.5, "memory": "1Gi" }
-            }
+            { "name": "avatar-viseme", "image": "[parameters('avatarVisemeImage')]", "resources": { "cpu": 0.5, "memory": "1Gi" } }
           ],
           "scale": { "minReplicas": 1, "maxReplicas": 2 }
         }
@@ -300,34 +278,13 @@
     }
   ],
   "outputs": {
-    "webAppUrl": {
-      "type": "string",
-      "value": "[reference(resourceId('Microsoft.Web/sites', variables('webAppName'))).defaultHostName]"
-    },
-    "functionAppName": {
-      "type": "string",
-      "value": "[variables('functionAppName')]"
-    },
-    "signalRName": {
-      "type": "string",
-      "value": "[variables('signalRName')]"
-    },
-    "cosmosAccountName": {
-      "type": "string",
-      "value": "[variables('cosmosName')]"
-    },
-    "postgresServerName": {
-      "type": "string",
-      "value": "[variables('postgresName')]"
-    },
-    "containerAppText": {
-      "type": "string",
-      "value": "[variables('containerAppTextName')]"
-    },
-    "containerAppViseme": {
-      "type": "string",
-      "value": "[variables('containerAppVisemeName')]"
-    },
+    "webAppUrl": { "type": "string", "value": "[reference(resourceId('Microsoft.Web/sites', variables('webAppName'))).defaultHostName]" },
+    "functionAppName": { "type": "string", "value": "[variables('functionAppName')]" },
+    "signalRName": { "type": "string", "value": "[variables('signalRName')]" },
+    "cosmosAccountName": { "type": "string", "value": "[variables('cosmosName')]" },
+    "postgresServerName": { "type": "string", "value": "[variables('postgresName')]" },
+    "containerAppText": { "type": "string", "value": "[variables('containerAppTextName')]" },
+    "containerAppViseme": { "type": "string", "value": "[variables('containerAppVisemeName')]" },
     "cognitiveServices": {
       "type": "object",
       "value": {
