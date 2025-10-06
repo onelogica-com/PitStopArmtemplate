@@ -16,28 +16,49 @@
       "type": "string",
       "defaultValue": "Standard_LRS"
     },
-    "postgresAdmin": {
+    "postgresServerName": {
+      "type": "string",
+      "defaultValue": "avatarchat-pg"
+    },
+    "skuName": {
+      "type": "string",
+      "defaultValue": "Standard_D2s_v3"
+    },
+    "postgresFlexibleServersSkuTier": {
+      "type": "string",
+      "defaultValue": "GeneralPurpose"
+    },
+    "skuSizeGB": {
+      "type": "int",
+      "defaultValue": 32
+    },
+    "postgresqlVersion": {
+      "type": "string",
+      "defaultValue": "13"
+    },
+    "administratorLogin": {
       "type": "string",
       "defaultValue": "pgadmin"
     },
-    "postgresAdminPassword": {
+    "administratorLoginPassword": {
       "type": "secureString",
       "metadata": { "description": "PostgreSQL admin password" }
     },
+    "availabilityZone": {
+      "type": "string",
+      "defaultValue": "1"
+    },
     "webChatImage": {
       "type": "string",
-      "defaultValue": "mcr.microsoft.com/azuredocs/hello-app:latest",
-      "metadata": { "description": "Container image for web chat app" }
+      "defaultValue": "mcr.microsoft.com/azuredocs/hello-app:latest"
     },
     "avatarTextImage": {
       "type": "string",
-      "defaultValue": "mcr.microsoft.com/yourorg/avatar-text:latest",
-      "metadata": { "description": "Container image for avatar text-response app" }
+      "defaultValue": "mcr.microsoft.com/yourorg/avatar-text:latest"
     },
     "avatarVisemeImage": {
       "type": "string",
-      "defaultValue": "mcr.microsoft.com/yourorg/avatar-viseme:latest",
-      "metadata": { "description": "Container image for viseme generation app" }
+      "defaultValue": "mcr.microsoft.com/yourorg/avatar-viseme:latest"
     },
     "cosmosOfferType": {
       "type": "string",
@@ -52,7 +73,6 @@
     "containerAppTextName": "[concat(parameters('prefix'), '-avatar-text')]",
     "containerAppVisemeName": "[concat(parameters('prefix'), '-avatar-viseme')]",
     "cosmosName": "[concat(parameters('prefix'), '-cosmos')]",
-    "postgresName": "[concat(parameters('prefix'), '-pg')]",
     "signalRName": "[concat(parameters('prefix'), '-signalr')]",
     "cogNameSuffix": "[uniqueString(resourceGroup().id)]",
     "cogTranslatorName": "[concat(parameters('prefix'),'-translator-', variables('cogNameSuffix'))]",
@@ -93,20 +113,50 @@
     },
     {
       "type": "Microsoft.DBforPostgreSQL/flexibleServers",
-      "apiVersion": "2021-06-01",
-      "name": "[variables('postgresName')]",
-      "location": "[parameters('location')]",
+      "apiVersion": "2023-06-01-preview",
+      "name": "[parameters('postgresServerName')]",
+      "location": "[resourceGroup().location]",
       "sku": {
-        "name": "GP_Standard_D2s_v3",
-        "tier": "GeneralPurpose",
-        "family": "Gen5",
-        "capacity": 2
+        "name": "[parameters('skuName')]",
+        "tier": "[parameters('postgresFlexibleServersSkuTier')]"
       },
       "properties": {
-        "administratorLogin": "[parameters('postgresAdmin')]",
-        "administratorLoginPassword": "[parameters('postgresAdminPassword')]",
-        "version": "13",
-        "storage": { "storageSizeGB": 32 }
+        "replica": {
+          "role": "Primary"
+        },
+        "storage": {
+          "iops": 500,
+          "tier": "P10",
+          "storageSizeGB": "[parameters('skuSizeGB')]"
+        },
+        "version": "[parameters('postgresqlVersion')]",
+        "administratorLogin": "[parameters('administratorLogin')]",
+        "administratorLoginPassword": "[parameters('administratorLoginPassword')]",
+        "availabilityZone": "[parameters('availabilityZone')]",
+        "backup": {
+          "backupRetentionDays": 7,
+          "geoRedundantBackup": "Disabled"
+        },
+        "network": {
+          "delegatedSubnetResourceId": "",
+          "privateDnsZoneArmResourceId": "",
+          "firewallRules": [
+            {
+              "name": "AllowAllAzureServices",
+              "startIpAddress": "0.0.0.0",
+              "endIpAddress": "0.0.0.0"
+            },
+            {
+              "name": "AllowAllIPs",
+              "startIpAddress": "0.0.0.0",
+              "endIpAddress": "255.255.255.255"
+            }
+          ]
+        },
+        "highAvailability": {
+          "mode": "Disabled"
+        },
+        "replicationRole": "Primary"
       }
     },
     {
@@ -214,7 +264,7 @@
     "functionAppName": { "type": "string", "value": "[concat(parameters('prefix'), '-func')]" },
     "signalRName": { "type": "string", "value": "[variables('signalRName')]" },
     "cosmosAccountName": { "type": "string", "value": "[variables('cosmosName')]" },
-    "postgresServerName": { "type": "string", "value": "[variables('postgresName')]" },
+    "postgresServerName": { "type": "string", "value": "[parameters('postgresServerName')]" },
     "containerAppWebChat": { "type": "string", "value": "[variables('containerAppWebChatName')]" },
     "containerAppText": { "type": "string", "value": "[variables('containerAppTextName')]" },
     "containerAppViseme": { "type": "string", "value": "[variables('containerAppVisemeName')]" },
