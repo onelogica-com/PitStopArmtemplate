@@ -64,11 +64,16 @@
       "type": "string",
       "defaultValue": "Standard",
       "allowedValues": ["Standard"]
+    },
+    "containerAppEnvironmentId": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource ID of an existing Container Apps managed environment"
+      }
     }
   },
   "variables": {
     "functionStorageName": "[toLower(concat(parameters('prefix'),'funcstore',uniqueString(resourceGroup().id)))]",
-    "containerEnvName": "[concat(parameters('prefix'), '-ca-env')]",
     "containerAppWebChatName": "[concat(parameters('prefix'), '-webchat')]",
     "containerAppTextName": "[concat(parameters('prefix'), '-avatar-text')]",
     "containerAppVisemeName": "[concat(parameters('prefix'), '-avatar-viseme')]",
@@ -121,9 +126,7 @@
         "tier": "[parameters('postgresFlexibleServersSkuTier')]"
       },
       "properties": {
-        "replica": {
-          "role": "Primary"
-        },
+        "replica": { "role": "Primary" },
         "storage": {
           "iops": 500,
           "tier": "P10",
@@ -153,9 +156,7 @@
             }
           ]
         },
-        "highAvailability": {
-          "mode": "Disabled"
-        },
+        "highAvailability": { "mode": "Disabled" },
         "replicationRole": "Primary"
       }
     },
@@ -181,23 +182,21 @@
       }
     },
     {
-      "type": "Microsoft.App/managedEnvironments",
-      "apiVersion": "2022-03-01",
-      "name": "[variables('containerEnvName')]",
-      "location": "[parameters('location')]",
-      "properties": {}
-    },
-    {
       "type": "Microsoft.App/containerApps",
       "apiVersion": "2022-03-01",
       "name": "[variables('containerAppWebChatName')]",
       "location": "[parameters('location')]",
-      "dependsOn": ["[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]"],
       "properties": {
-        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]",
+        "managedEnvironmentId": "[parameters('containerAppEnvironmentId')]",
         "configuration": { "ingress": { "external": true, "targetPort": 80 } },
         "template": {
-          "containers": [{ "name": "webchat", "image": "[parameters('webChatImage')]", "resources": { "cpu": 0.5, "memory": "1Gi" } }],
+          "containers": [
+            {
+              "name": "webchat",
+              "image": "[parameters('webChatImage')]",
+              "resources": { "cpu": 0.5, "memory": "1Gi" }
+            }
+          ],
           "scale": { "minReplicas": 1, "maxReplicas": 3 }
         }
       }
@@ -207,12 +206,17 @@
       "apiVersion": "2022-03-01",
       "name": "[variables('containerAppTextName')]",
       "location": "[parameters('location')]",
-      "dependsOn": ["[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]"],
       "properties": {
-        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]",
+        "managedEnvironmentId": "[parameters('containerAppEnvironmentId')]",
         "configuration": { "ingress": { "external": false, "targetPort": 8080 } },
         "template": {
-          "containers": [{ "name": "avatar-text", "image": "[parameters('avatarTextImage')]", "resources": { "cpu": 0.5, "memory": "1Gi" } }],
+          "containers": [
+            {
+              "name": "avatar-text",
+              "image": "[parameters('avatarTextImage')]",
+              "resources": { "cpu": 0.5, "memory": "1Gi" }
+            }
+          ],
           "scale": { "minReplicas": 1, "maxReplicas": 3 }
         }
       }
@@ -222,12 +226,17 @@
       "apiVersion": "2022-03-01",
       "name": "[variables('containerAppVisemeName')]",
       "location": "[parameters('location')]",
-      "dependsOn": ["[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]"],
       "properties": {
-        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]",
+        "managedEnvironmentId": "[parameters('containerAppEnvironmentId')]",
         "configuration": { "ingress": { "external": false, "targetPort": 8080 } },
         "template": {
-          "containers": [{ "name": "avatar-viseme", "image": "[parameters('avatarVisemeImage')]", "resources": { "cpu": 0.5, "memory": "1Gi" } }],
+          "containers": [
+            {
+              "name": "avatar-viseme",
+              "image": "[parameters('avatarVisemeImage')]",
+              "resources": { "cpu": 0.5, "memory": "1Gi" }
+            }
+          ],
           "scale": { "minReplicas": 1, "maxReplicas": 2 }
         }
       }
