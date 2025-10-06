@@ -16,10 +16,6 @@
       "type": "string",
       "defaultValue": "Standard_LRS"
     },
-    "appServiceSku": {
-      "type": "string",
-      "defaultValue": "P1v2"
-    },
     "postgresAdmin": {
       "type": "string",
       "defaultValue": "pgadmin"
@@ -28,7 +24,7 @@
       "type": "secureString",
       "metadata": { "description": "PostgreSQL admin password" }
     },
-    "webAppImage": {
+    "webChatImage": {
       "type": "string",
       "defaultValue": "mcr.microsoft.com/azuredocs/hello-app:latest",
       "metadata": { "description": "Container image for web chat app" }
@@ -50,12 +46,9 @@
     }
   },
   "variables": {
-    "storageAccountName": "[toLower(concat(parameters('prefix'),'storage',uniqueString(resourceGroup().id)))]",
     "functionStorageName": "[toLower(concat(parameters('prefix'),'funcstore',uniqueString(resourceGroup().id)))]",
-    "appServicePlanName": "[concat(parameters('prefix'), '-plan')]",
-    "webAppName": "[concat(parameters('prefix'), '-webchat')]",
-    "functionAppName": "[concat(parameters('prefix'), '-func')]",
     "containerEnvName": "[concat(parameters('prefix'), '-ca-env')]",
+    "containerAppWebChatName": "[concat(parameters('prefix'), '-webchat')]",
     "containerAppTextName": "[concat(parameters('prefix'), '-avatar-text')]",
     "containerAppVisemeName": "[concat(parameters('prefix'), '-avatar-viseme')]",
     "cosmosName": "[concat(parameters('prefix'), '-cosmos')]",
@@ -65,87 +58,36 @@
     "cogTranslatorName": "[concat(parameters('prefix'),'-translator-', variables('cogNameSuffix'))]",
     "cogSpeechName": "[concat(parameters('prefix'),'-speech-', variables('cogNameSuffix'))]",
     "cogSearchName": "[concat(parameters('prefix'),'-search-', variables('cogNameSuffix'))]",
-    "cogFormRecName": "[concat(parameters('prefix'),'-formrec-', variables('cogNameSuffix'))]",
-    "appInsightsName": "[concat(parameters('prefix'), '-ai')]"
+    "cogFormRecName": "[concat(parameters('prefix'),'-formrec-', variables('cogNameSuffix'))]"
   },
   "resources": [
     {
       "type": "Microsoft.Storage/storageAccounts",
       "apiVersion": "2021-09-01",
-      "name": "[variables('storageAccountName')]",
+      "name": "[variables('functionStorageName')]",
       "location": "[parameters('location')]",
       "sku": { "name": "[parameters('storageSku')]" },
       "kind": "StorageV2",
       "properties": { "accessTier": "Hot" }
     },
     {
-      "type": "Microsoft.Storage/storageAccounts",
-      "apiVersion": "2021-09-01",
-      "name": "[variables('functionStorageName')]",
-      "location": "[parameters('location')]",
-      "sku": { "name": "Standard_LRS" },
-      "kind": "StorageV2",
-      "properties": { "accessTier": "Hot" }
-    },
-    {
-      "type": "Microsoft.Insights/components",
-      "apiVersion": "2015-05-01",
-      "name": "[variables('appInsightsName')]",
-      "location": "[parameters('location')]",
-      "properties": { "Application_Type": "web" }
-    },
-    {
-      "type": "Microsoft.Web/serverfarms",
-      "apiVersion": "2021-02-01",
-      "name": "[variables('appServicePlanName')]",
-      "location": "[parameters('location')]",
-      "sku": {
-        "name": "[parameters('appServiceSku')]",
-        "tier": "PremiumV2",
-        "size": "[parameters('appServiceSku')]",
-        "capacity": 1
-      },
-      "properties": { "reserved": true }
-    },
-    {
-      "type": "Microsoft.Web/sites",
-      "apiVersion": "2021-02-01",
-      "name": "[variables('webAppName')]",
-      "location": "[parameters('location')]",
-      "dependsOn": [
-        "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
-        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
-      ],
-      "properties": {
-        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
-        "siteConfig": {
-          "appSettings": [
-            { "name": "WEBSITES_ENABLE_APP_SERVICE_STORAGE", "value": "false" },
-            { "name": "AzureWebJobsStorage", "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('functionStorageName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageName')), '2021-09-01').keys[0].value)]" },
-            { "name": "APPINSIGHTS_INSTRUMENTATIONKEY", "value": "[reference(resourceId('microsoft.insights/components', variables('appInsightsName')), '2015-05-01').InstrumentationKey]" }
-          ]
-        }
-      }
-    },
-    {
       "type": "Microsoft.Web/sites",
       "apiVersion": "2021-02-01",
       "kind": "functionapp",
-      "name": "[variables('functionAppName')]",
+      "name": "[concat(parameters('prefix'), '-func')]",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
-        "[resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageName'))]",
-        "[resourceId('microsoft.insights/components', variables('appInsightsName'))]"
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageName'))]"
       ],
       "properties": {
-        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
         "siteConfig": {
           "appSettings": [
-            { "name": "AzureWebJobsStorage", "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('functionStorageName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageName')), '2021-09-01').keys[0].value)]" },
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('functionStorageName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageName')), '2021-09-01').keys[0].value)]"
+            },
             { "name": "FUNCTIONS_EXTENSION_VERSION", "value": "~4" },
-            { "name": "FUNCTIONS_WORKER_RUNTIME", "value": "node" },
-            { "name": "APPINSIGHTS_INSTRUMENTATIONKEY", "value": "[reference(resourceId('microsoft.insights/components', variables('appInsightsName')), '2015-05-01').InstrumentationKey]" }
+            { "name": "FUNCTIONS_WORKER_RUNTIME", "value": "node" }
           ]
         }
       }
@@ -173,11 +115,7 @@
       "apiVersion": "2021-10-01",
       "name": "[variables('signalRName')]",
       "location": "[parameters('location')]",
-      "sku": {
-        "name": "Standard_S1",
-        "tier": "Standard",
-        "capacity": 1
-      },
+      "sku": { "name": "Standard_S1", "tier": "Standard", "capacity": 1 },
       "properties": { "features": [], "disableLocalAuth": false }
     },
     {
@@ -203,19 +141,29 @@
     {
       "type": "Microsoft.App/containerApps",
       "apiVersion": "2022-03-01",
+      "name": "[variables('containerAppWebChatName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": ["[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]"],
+      "properties": {
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]",
+        "configuration": { "ingress": { "external": true, "targetPort": 80 } },
+        "template": {
+          "containers": [{ "name": "webchat", "image": "[parameters('webChatImage')]", "resources": { "cpu": 0.5, "memory": "1Gi" } }],
+          "scale": { "minReplicas": 1, "maxReplicas": 3 }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2022-03-01",
       "name": "[variables('containerAppTextName')]",
       "location": "[parameters('location')]",
       "dependsOn": ["[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]"],
       "properties": {
         "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]",
-        "configuration": {
-          "secrets": [],
-          "ingress": { "external": false, "targetPort": 8080, "transport": "auto" }
-        },
+        "configuration": { "ingress": { "external": false, "targetPort": 8080 } },
         "template": {
-          "containers": [
-            { "name": "avatar-text", "image": "[parameters('avatarTextImage')]", "resources": { "cpu": 0.5, "memory": "1Gi" } }
-          ],
+          "containers": [{ "name": "avatar-text", "image": "[parameters('avatarTextImage')]", "resources": { "cpu": 0.5, "memory": "1Gi" } }],
           "scale": { "minReplicas": 1, "maxReplicas": 3 }
         }
       }
@@ -228,14 +176,9 @@
       "dependsOn": ["[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]"],
       "properties": {
         "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvName'))]",
-        "configuration": {
-          "secrets": [],
-          "ingress": { "external": false, "targetPort": 8080, "transport": "auto" }
-        },
+        "configuration": { "ingress": { "external": false, "targetPort": 8080 } },
         "template": {
-          "containers": [
-            { "name": "avatar-viseme", "image": "[parameters('avatarVisemeImage')]", "resources": { "cpu": 0.5, "memory": "1Gi" } }
-          ],
+          "containers": [{ "name": "avatar-viseme", "image": "[parameters('avatarVisemeImage')]", "resources": { "cpu": 0.5, "memory": "1Gi" } }],
           "scale": { "minReplicas": 1, "maxReplicas": 2 }
         }
       }
@@ -278,11 +221,11 @@
     }
   ],
   "outputs": {
-    "webAppUrl": { "type": "string", "value": "[reference(resourceId('Microsoft.Web/sites', variables('webAppName'))).defaultHostName]" },
-    "functionAppName": { "type": "string", "value": "[variables('functionAppName')]" },
+    "functionAppName": { "type": "string", "value": "[concat(parameters('prefix'), '-func')]" },
     "signalRName": { "type": "string", "value": "[variables('signalRName')]" },
     "cosmosAccountName": { "type": "string", "value": "[variables('cosmosName')]" },
     "postgresServerName": { "type": "string", "value": "[variables('postgresName')]" },
+    "containerAppWebChat": { "type": "string", "value": "[variables('containerAppWebChatName')]" },
     "containerAppText": { "type": "string", "value": "[variables('containerAppTextName')]" },
     "containerAppViseme": { "type": "string", "value": "[variables('containerAppVisemeName')]" },
     "cognitiveServices": {
