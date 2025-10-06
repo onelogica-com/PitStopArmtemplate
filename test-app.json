@@ -296,4 +296,9 @@
       }
     }
   }
+  
+  //"comment_quotaNote": {
+  //  "note": "Deployment reminder — this comment is informational only and has no impact on template execution.",
+  //  "details": "Operation cannot be completed without additional quota. Additional details - Location: Current Limit (Basic VMs): 0, Current Usage: 0, Amount required for this deployment (Basic VMs): 1. (Minimum) New Limit that you should request to enable this deployment: 1. If you experience multiple scaling operations failing (in addition to this one), request a higher quota limit to accommodate aggregate requirements. (Code: SubscriptionIsOverQuotaForSku)"
+  //}
 }
