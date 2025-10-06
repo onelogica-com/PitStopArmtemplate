@@ -14,7 +14,7 @@
     },
     "storageSku": { "type": "string", "defaultValue": "Standard_LRS" },
     "appServiceSku": { "type": "string", "defaultValue": "F1" },
-    "postgresSkuName": { "type": "string", "defaultValue": "GP_Standard_D2s_v3" },
+    "postgresSkuName": { "type": "string", "defaultValue": "B_Standard_B1ms" },
     "postgresAdmin": { "type": "string", "defaultValue": "pgadmin" },
     "postgresAdminPassword": {
       "type": "secureString",
@@ -156,10 +156,10 @@
       "name": "[variables('postgresName')]",
       "location": "[parameters('location')]",
       "sku": {
-        "name": "GP_Standard_D2s_v3",
-        "tier": "GeneralPurpose",
-        "family": "Gen5",
-        "capacity": 2
+        "name": "[parameters('postgresSkuName')]",
+        "tier": "Burstable",
+        "family": "B",
+        "capacity": 1
       },
       "properties": {
         "administratorLogin": "[parameters('postgresAdmin')]",
@@ -296,8 +296,4 @@
       }
     }
   }
-  //"comment_quotaNote": {
-    //"note": "Deployment comment — informational only, no impact on deployment.",
-    //"details": "Operation cannot be completed without additional quota. This template now uses the Free (F1) App Service Plan to avoid Basic VM quota consumption. If you switch back to Basic, increase your quota under Subscription → Usage + quotas → Compute."
-  //}
 }
