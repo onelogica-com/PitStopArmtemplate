@@ -4,7 +4,7 @@
   "parameters": {
     "location": {
       "type": "string",
-      "defaultValue": "Central India",
+      "defaultValue": "[resourceGroup().location]",
       "metadata": { "description": "Location for all resources" }
     },
     "prefix": {
@@ -57,7 +57,6 @@
     "cogNameSuffix": "[uniqueString(resourceGroup().id)]",
     "cogTranslatorName": "[concat(parameters('prefix'),'-translator-', variables('cogNameSuffix'))]",
     "cogSpeechName": "[concat(parameters('prefix'),'-speech-', variables('cogNameSuffix'))]",
-    "cogSearchName": "[concat(parameters('prefix'),'-search-', variables('cogNameSuffix'))]",
     "cogFormRecName": "[concat(parameters('prefix'),'-formrec-', variables('cogNameSuffix'))]"
   },
   "resources": [
@@ -204,15 +203,6 @@
     {
       "type": "Microsoft.CognitiveServices/accounts",
       "apiVersion": "2021-10-01",
-      "name": "[variables('cogSearchName')]",
-      "location": "Central India",
-      "sku": { "name": "S1" },
-      "kind": "Search",
-      "properties": { "publicNetworkAccess": "Enabled" }
-    },
-    {
-      "type": "Microsoft.CognitiveServices/accounts",
-      "apiVersion": "2021-10-01",
       "name": "[variables('cogFormRecName')]",
       "location": "[parameters('location')]",
       "sku": { "name": "S0" },
@@ -233,7 +223,6 @@
       "value": {
         "translator": "[variables('cogTranslatorName')]",
         "speech": "[variables('cogSpeechName')]",
-        "search": "[variables('cogSearchName')]",
         "formRecognizer": "[variables('cogFormRecName')]"
       }
     }
